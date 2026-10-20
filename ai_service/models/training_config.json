@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-10-18T19:15:40.449802",
+  "architecture": "MobileNetV2 (ImageNet pretrained backbone + custom classification head)",
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "batch_size": 32,
+  "learning_rate": 0.001,
+  "epochs_requested": 10,
+  "epochs_trained": 10,
+  "best_epoch": 7,
+  "seed": 42,
+  "train_samples": 1096,
+  "val_samples": 155,
+  "test_samples": 310,
+  "num_classes": 6,
+  "classes": [
+    "apple black rot",
+    "apple leaf",
+    "apple mosaic virus",
+    "apple rust",
+    "apple scab",
+    "banana leaf"
+  ],
+  "training_history": {
+    "loss": [
+      0.9419,
+      0.3804,
+      0.2871,
+      0.2014,
+      0.1741,
+      0.1378,
+      0.1261,
+      0.0964,
+      0.0849,
+      0.0927
+    ],
+    "accuracy": [
+      0.7026,
+      0.8759,
+      0.9097,
+      0.9407,
+      0.9489,
+      0.9635,
+      0.9681,
+      0.9745,
+      0.9772,
+      0.9735
+    ],
+    "val_loss": [
+      0.8173,
+      0.7818,
+      0.8037,
+      0.8016,
+      0.9272,
+      0.9577,
+      0.9168,
+      0.9912,
+      1.0277,
+      1.0286
+    ],
+    "val_accuracy": [
+      0.7677,
+      0.7871,
+      0.7806,
+      0.7935,
+      0.7548,
+      0.7419,
+      0.7677,
+      0.7419,
+      0.7355,
+      0.7226
+    ]
+  }
+}

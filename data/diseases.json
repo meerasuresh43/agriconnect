@@ -1,0 +1,20 @@
+{
+    "Tomato Early Blight": {
+        "symptoms": [
+            "Brown circular spots on leaves",
+            "Yellow leaves",
+            "Leaves start drying"
+        ],
+        "cause": "Fungal infection caused by Alternaria solani.",
+        "treatment": [
+            "Remove infected leaves.",
+            "Apply fungicide.",
+            "Avoid overwatering."
+        ],
+        "prevention": [
+            "Use healthy seeds.",
+            "Practice crop rotation.",
+            "Keep proper spacing between plants."
+        ]
+    }
+}

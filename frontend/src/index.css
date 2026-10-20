@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-agri-light: #E8F5E9;
+    --color-agri-soft: #C8E6C9;
+    --color-agri-medium: #81C784;
+    --color-agri-dark: #2E7D32;
+    --color-agri-deep: #1B4332;
+    --color-agri-accent: #4CAF50;
+  }
+
+  body {
+    background-color: #FFFFFF;
+    color: #1B4332;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F4FBF7;
+}
+::-webkit-scrollbar-thumb {
+  background: #C8E6C9;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #81C784;
+}
+
+/* Leaflet Map Styles Fixes */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  z-index: 10;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  border: 1px solid #C8E6C9 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(46, 125, 50, 0.15) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+}
+
+/* Custom Utilities */
+.bg-agri-light { background-color: #E8F5E9; }
+.bg-agri-soft { background-color: #C8E6C9; }
+.bg-agri-medium { background-color: #81C784; }
+.bg-agri-dark { background-color: #2E7D32; }
+.bg-agri-deep { background-color: #1B4332; }
+
+.text-agri-dark { color: #2E7D32; }
+.text-agri-deep { color: #1B4332; }
+.text-agri-medium { color: #81C784; }
+
+.border-agri-soft { border-color: #C8E6C9; }
+.border-agri-medium { border-color: #81C784; }
+.border-agri-dark { border-color: #2E7D32; }
+
+.shadow-agri {
+  box-shadow: 0 4px 20px -2px rgba(46, 125, 50, 0.08);
+}
+.shadow-agri-hover:hover {
+  box-shadow: 0 10px 25px -3px rgba(46, 125, 50, 0.16);
+  transform: translateY(-2px);
+}

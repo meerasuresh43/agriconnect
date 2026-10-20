@@ -1,0 +1,16 @@
+{
+  "name": "agriconnect-ai",
+  "version": "1.0.0",
+  "description": "Full-Stack Agricultural Land Renting & AI Farming Assistant Platform",
+  "scripts": {
+    "start": "node backend/server.js",
+    "seed": "node backend/seed.js",
+    "setup:admin": "node backend/setup-admin.js",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
