@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
 import { 
   Bot, Mic, MicOff, Send, Upload, Sparkles, AlertTriangle, ShieldCheck, 
-  CheckCircle2, RotateCcw, ExternalLink, Leaf, Volume2, AlertCircle, RefreshCw, Languages
+  CheckCircle2, RotateCcw, ExternalLink, Leaf, Volume2, AlertCircle, RefreshCw, Languages, Square
 } from 'lucide-react';
 
 export const AiAssistant = () => {
@@ -15,6 +15,9 @@ export const AiAssistant = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [detecting, setDetecting] = useState(false);
   const [diseaseResult, setDiseaseResult] = useState(null);
+  const [chatCropContext, setChatCropContext] = useState(null);
+  const [chatDiseaseContext, setChatDiseaseContext] = useState(null);
+  const [recentImagePrediction, setRecentImagePrediction] = useState(null);
 
   // --- 2. Crop Recommendation State ---
   const [cropInputs, setCropInputs] = useState({
@@ -106,12 +109,28 @@ export const AiAssistant = () => {
 
       if (res.data.success) {
         setDiseaseResult(res.data);
+        setRecentImagePrediction(res.data);
+        if (res.data.crop) setChatCropContext(res.data.crop);
+        if (res.data.diseaseName) setChatDiseaseContext(res.data.diseaseName);
       }
     } catch (err) {
       console.error('Disease detection error:', err);
     } finally {
       setDetecting(false);
     }
+  };
+
+  const handleAskAboutDisease = (disease) => {
+    if (!disease) return;
+    setActiveTab('chat');
+    setRecentImagePrediction(disease);
+    if (disease.crop) setChatCropContext(disease.crop);
+    if (disease.diseaseName) setChatDiseaseContext(disease.diseaseName);
+
+    const question = lang === 'ta'
+      ? `${disease.diseaseName} நோயைக் குணப்படுத்த TNAU மற்றும் ICAR பரிந்துரைக்கும் சிறந்த சிகிச்சை மற்றும் மருந்து தெளிப்பு என்ன?`
+      : `What are the recommended ICAR and TNAU management steps and certified fungicide treatments for ${disease.diseaseName}?`;
+    setInputMsg(question);
   };
 
   // Handle Crop Recommendation Submission
@@ -147,9 +166,28 @@ export const AiAssistant = () => {
     setEmptyRecognitionNotice(false);
 
     try {
-      const res = await api.post('/ai/chat', { message: text, lang });
+      const res = await api.post('/ai/chat', { 
+        message: text, 
+        lang,
+        location: cropInputs?.location || 'Thanjavur, Tamil Nadu',
+        cropContext: chatCropContext,
+        diseaseContext: chatDiseaseContext,
+        imagePrediction: recentImagePrediction,
+        history: messages.slice(-6).map((m) => ({ sender: m.sender, text: m.text }))
+      });
       if (res.data?.success) {
-        setMessages((prev) => [...prev, { id: prev.length + 1, sender: 'ai', text: res.data.reply }]);
+        setMessages((prev) => [
+          ...prev, 
+          { 
+            id: prev.length + 1, 
+            sender: 'ai', 
+            text: res.data.reply,
+            meta: res.data.meta,
+            sources: res.data.sources || [],
+            webSearchPerformed: res.data.web_search_performed,
+            weather: res.data.weather || null
+          }
+        ]);
         speakText(res.data.reply);
       }
     } catch (err) {
@@ -501,10 +539,22 @@ export const AiAssistant = () => {
                       🍌 Banana Leaf
                     </button>
                     <button
+                      onClick={() => handleDiseaseDetect('brinjal_cercospora')}
+                      className="px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg font-medium hover:bg-purple-100"
+                    >
+                      🍆 Brinjal Cercospora
+                    </button>
+                    <button
                       onClick={() => handleDiseaseDetect('tomato_late_blight')}
-                      className="px-2.5 py-1 bg-agri-light text-agri-dark border border-agri-soft rounded-lg font-medium hover:bg-agri-soft"
+                      className="px-2.5 py-1 bg-red-50 text-red-800 border border-red-200 rounded-lg font-medium hover:bg-red-100"
                     >
                       🍅 Tomato Late Blight
+                    </button>
+                    <button
+                      onClick={() => handleDiseaseDetect('tomato_yellow_leaf_curl')}
+                      className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-medium hover:bg-amber-100"
+                    >
+                      🍅 Tomato Leaf Curl
                     </button>
                   </div>
                 </div>
@@ -530,6 +580,20 @@ export const AiAssistant = () => {
                       </div>
                       <p className="text-xs text-amber-800 leading-relaxed font-medium">{diseaseResult.warningMessage}</p>
                       <p className="text-[11px] text-amber-700 italic">{diseaseResult.recommendation}</p>
+                      {diseaseResult.top_predictions && diseaseResult.top_predictions.length > 0 && (
+                        <div className="pt-2 border-t border-amber-200/60">
+                          <div className="text-[11px] font-bold text-amber-900 mb-1.5">
+                            {lang === 'ta' ? 'அருகாமையிலுள்ள உத்தேச நோய்கள்:' : 'Top Resembling Disease Candidates:'}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {diseaseResult.top_predictions.slice(0, 3).map((p, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-amber-100/70 border border-amber-300 rounded-lg text-[10px] font-semibold text-amber-900">
+                                #{idx + 1} {p.class} ({p.confidence}%)
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -588,6 +652,19 @@ export const AiAssistant = () => {
                       <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 font-medium">
                         {diseaseResult.disclaimer}
                       </div>
+
+                      {/* Bridge to Bilingual Chatbot with Context */}
+                      <button
+                        onClick={() => handleAskAboutDisease(diseaseResult)}
+                        className="w-full py-3 px-4 bg-agri-dark hover:bg-agri-deep text-white font-extrabold text-xs rounded-2xl border border-agri-dark transition flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        <Bot className="w-4 h-4 text-white" />
+                        <span>
+                          {lang === 'ta'
+                            ? `AI உதவியாளரிடம் இதைப் பற்றிக் கேட்கவும் (${diseaseResult.diseaseName})`
+                            : `Ask AI Assistant about this ${diseaseResult.diseaseName}`}
+                        </span>
+                      </button>
                     </>
                   )}
 
@@ -886,20 +963,62 @@ export const AiAssistant = () => {
                   )}
 
                   <div
-                    className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
+                    className={`max-w-lg p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.sender === 'user'
                         ? 'bg-agri-light/60 text-agri-deep border border-agri-soft rounded-tr-none'
                         : 'bg-agri-light text-agri-deep border border-agri-soft rounded-tl-none font-medium shadow-sm'
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === 'ai' && msg.webSearchPerformed && (
+                      <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                        <Sparkles className="w-3 h-3 text-emerald-600" />
+                        <span>{lang === 'ta' ? '🔍 நேரலை இணைய ஆராய்ச்சி சரிபார்க்கப்பட்டது' : '🔍 Live Online Research Verified'}</span>
+                      </div>
+                    )}
+
+                    <div>{msg.text}</div>
+
+                    {/* Verified Clickable Sources Cards */}
+                    {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
+                      <div className="mt-3 pt-2.5 border-t border-agri-soft/80 space-y-1.5">
+                        <div className="text-[10px] font-bold text-agri-deep flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3 text-agri-dark" />
+                          <span>{lang === 'ta' ? 'சரிபார்க்கப்பட்ட அதிகாரப்பூர்வ தளங்கள் (Official Sources):' : 'Verified Official Sources:'}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {msg.sources.map((src, sIdx) => (
+                            <a
+                              key={sIdx}
+                              href={src.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white hover:bg-agri-light border border-agri-soft text-[10px] font-semibold text-agri-dark hover:text-agri-deep transition shadow-xs group"
+                              title={`${src.title} • ${src.organization || ''}`}
+                            >
+                              <span className="truncate max-w-[210px]">{src.title}</span>
+                              <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 text-slate-400 group-hover:text-agri-dark" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {msg.sender === 'ai' && (
-                      <button
-                        onClick={() => speakText(msg.text)}
-                        className="mt-2 flex items-center gap-1 text-[10px] font-bold text-agri-dark hover:underline"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" /> Speak Answer
-                      </button>
+                      <div className="mt-2.5 pt-2 border-t border-agri-soft/80 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          onClick={() => speakText(msg.text)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-agri-dark hover:underline"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" /> Speak Answer
+                        </button>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          {msg.webSearchPerformed
+                            ? '🌐 Official Portals & ICAR/TNAU Verified'
+                            : (msg.meta?.provider === 'gemini' ? '✨ Gemini Grounded' :
+                               msg.meta?.provider === 'openai' ? '✨ OpenAI Grounded' :
+                               '🛡️ ICAR / TNAU Verified Knowledge Engine')}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -998,6 +1117,19 @@ export const AiAssistant = () => {
                 {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
 
+              {/* Explicit Stop Button when Listening */}
+              {isListening && (
+                <button
+                  type="button"
+                  onClick={stopSpeechRecognition}
+                  className="px-3 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 flex-shrink-0 animate-pulse"
+                  title="Stop recording"
+                >
+                  <Square className="w-4 h-4 fill-white" />
+                  <span className="hidden sm:inline">Stop</span>
+                </button>
+              )}
+
               {/* Text Input displaying Spoken & Typed Words - User Reviews & Edits Before Sending */}
               <div className="relative flex-1">
                 <input
@@ -1043,6 +1175,18 @@ export const AiAssistant = () => {
                 <Send className="w-5 h-5" />
               </button>
 
+            </div>
+
+            {/* Disclaimer & Review Guidance */}
+            <div className="px-4 py-1.5 bg-slate-50 border-t border-agri-soft/50 text-[10px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+              <span>
+                🎙️ {lang === 'ta' 
+                  ? 'குரல் அறிதல் உலாவி தொழில்நுட்பத்தைப் பயன்படுத்துகிறது (Chrome/Edge). துல்லியம் மைக்ரோஃபோனைப் பொறுத்தது; அனுப்பும் முன் திருத்திக் கொள்ளலாம்.' 
+                  : 'Voice-to-text uses browser Web Speech API. Accuracy depends on pronunciation and microphone clarity. Review & edit before sending.'}
+              </span>
+              <span className="text-agri-dark font-medium hidden sm:inline">
+                No auto-submit • Full user review
+              </span>
             </div>
 
           </div>

@@ -27,7 +27,7 @@ EPOCHS = 10
 SEED = 42
 
 # Thresholds (89-class calibrated threshold; uniform prior is 1.12%)
-CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.20"))
+CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.35"))
 MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB limit
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 

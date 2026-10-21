@@ -178,7 +178,34 @@ async function getDb() {
       FOREIGN KEY (duplicate_user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
     );
+
+    -- AI Chat Conversation History Table
+    CREATE TABLE IF NOT EXISTS chat_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      conversation_id TEXT NOT NULL,
+      sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
+      message TEXT NOT NULL,
+      language TEXT,
+      intent TEXT,
+      crop_context TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_history_user ON chat_history(user_id);
+    CREATE INDEX IF NOT EXISTS idx_chat_history_conv ON chat_history(conversation_id);
   `);
+
+  // Safe migration: Add disease_context to chat_history if missing
+  try {
+    const chatCols = await dbInstance.all('PRAGMA table_info(chat_history)');
+    if (!chatCols.some(c => c.name === 'disease_context')) {
+      await dbInstance.run('ALTER TABLE chat_history ADD COLUMN disease_context TEXT');
+    }
+  } catch (err) {
+    // Column already exists
+  }
 
   // Migrate existing users table if schema update needed
   try {

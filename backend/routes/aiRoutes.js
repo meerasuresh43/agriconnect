@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const upload = require('../middleware/upload');
 const { getDb } = require('../db');
+const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
+const { processChatMessage, getUserChatHistory, clearUserChatHistory } = require('../services/chatbotService');
 
 const FLASK_API_URL = process.env.PLANT_DISEASE_API_URL || 'http://localhost:5001/api/predict';
 
@@ -159,7 +162,13 @@ router.post('/disease-detect', upload.single('image'), async (req, res) => {
         'apple_rust': path.join(__dirname, '../../data/plantwild/plantwild/images/apple rust/1.jpg'),
         'apple_scab': path.join(__dirname, '../../data/plantwild/plantwild/images/apple scab/1.jpg'),
         'banana_leaf': path.join(__dirname, '../../data/plantwild/plantwild/images/banana leaf/1.jpg'),
-        'tomato_late_blight': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato late blight/10.jpg')
+        'tomato_late_blight': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato late blight/100.jpg'),
+        'tomato_early_blight': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato early blight/159.jpg'),
+        'tomato_yellow_leaf_curl': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato yellow leaf curl virus/18.jpg'),
+        'tomato_bacterial_spot': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato bacterial leaf spot/147.jpg'),
+        'tomato_leaf': path.join(__dirname, '../../data/plantwild/plantwild/images/tomato leaf/16.jpg'),
+        'brinjal_cercospora': path.join(__dirname, '../../data/plantwild/plantwild/images/eggplant cercospora leaf spot/12.jpg'),
+        'brinjal_leaf': path.join(__dirname, '../../data/plantwild/plantwild/images/eggplant leaf/1.jpg')
       };
       imagePath = sampleMap[sampleDiseaseKey];
       if (imagePath && fs.existsSync(imagePath)) {
@@ -184,9 +193,10 @@ router.post('/disease-detect', upload.single('image'), async (req, res) => {
     if (weather) formData.append('weather', weather);
     if (irrigation) formData.append('irrigation', irrigation);
     if (season) formData.append('season', season);
-    if (forceLowConfidence === 'true') {
+    if (forceLowConfidence === 'true' || forceLowConfidence === true) {
       formData.append('lesion_coverage', '15.0');
       formData.append('humidity', '30.0');
+      formData.append('force_uncertain', 'true');
     }
 
     // Call Flask AI service (configured via environment variable PLANT_DISEASE_API_URL)
@@ -453,36 +463,98 @@ router.get('/schemes', async (req, res) => {
   }
 });
 
-// POST /api/ai/chat - General AI Assistant Queries (Bilingual Tamil + English)
+// POST /api/ai/chat - General AI Assistant Queries with Live Web Research
 router.post('/chat', async (req, res) => {
   try {
-    const { message, lang } = req.body;
-    const msg = (message || '').toLowerCase();
-    const isTamil = lang === 'ta' || /[ஃ-ஹ]/.test(message);
+    const { message, lang, history, conversationId, location, cropContext, diseaseContext, imagePrediction } = req.body;
 
-    let reply = '';
-
-    if (msg.includes('yellow') || msg.includes('மஞ்சள்') || msg.includes('இலை')) {
-      reply = isTamil
-        ? 'தக்காளி அல்லது செடிகளில் இலைகள் மஞ்சளாவதற்கு முக்கிய காரணங்கள்:\n1. நைட்ரஜன் சத்து குறைபாடு - இலைகளுக்கு காம்ப்ளக்ஸ் உரம் அல்லது வேப்பம் புண்ணாக்கு இடவும்.\n2. லேட் பிளைட் / மஞ்சள் சுருள் வைரஸ் - தயவுசெய்து எங்களது "நோய் கண்டறிதல்" (Plant Disease Detection) பக்கத்தில் இலை படத்தை பதிவேற்றம் செய்யவும்.\n3. அதிக நீர் தேங்குவது - பாசனத்தைக் குறைத்து வடிகால் வசதியை சீர்செய்யவும்.'
-        : 'Yellowing leaves can indicate:\n1. Nitrogen Deficiency: Apply well-rotted FYM or Neem Cake.\n2. Virus or Blight Infection: Upload a photo in our "Disease Detection" tab for instant identification.\n3. Waterlogging: Ensure proper root zone drainage.';
-    } else if (msg.includes('rent') || msg.includes('வாடகை') || msg.includes('நிலம்')) {
-      reply = isTamil
-        ? 'அக்ரிகனெக்ட் தளம் மூலம் நீங்கள் விவசாய நிலங்களை வாடகைக்கு எடுக்க அல்லது உங்கள் நிலத்தைப் பட்டியலிடலாம்:\n1. "Lands" பக்கத்தில் கிடைக்கும் நிலங்களை வரைபடம் மற்றும் பட்டியல் மூலம் தேடலாம்.\n2. நில விவரப் பக்கத்தில் "Send Rental Request" பொத்தானைக் கிளிக் செய்து நில உரிமையாளருக்கு கோரிக்கை அனுப்பலாம்.'
-        : 'On AgriConnect AI, you can easily discover agricultural lands for rent:\n1. Browse the "Lands" page using our Interactive Map or Filters.\n2. Click "Send Rental Request" on any land listing to directly connect with the verified land owner.';
-    } else if (msg.includes('scheme') || msg.includes('திட்டம்') || msg.includes('PM-KISAN') || msg.includes('மாநியம்')) {
-      reply = isTamil
-        ? 'முக்கிய அரசு வேளாண் திட்டங்கள்:\n1. பி.எம்-கிசான்: ஆண்டுக்கு ₹6,000 நிதியுதவி (pmkisan.gov.in)\n2. முதல்வரின் சூரியசக்தி பம்ப் செட் திட்டம்: 90% மானியம் (உழவன் செயலி / tnagrisnet.tn.gov.in)\n3. பயிர் காப்பீட்டுத் திட்டம் (PMFBY).\n\n"Government Schemes"Tab-இல் விரிவாக பார்க்கவும்.'
-        : 'Key Agricultural Government Schemes:\n1. PM-KISAN: ₹6,000 annual direct bank transfer.\n2. CM Solar Pump Scheme (Tamil Nadu): 90% subsidy on solar agriculture pumps.\n3. PMFBY Crop Insurance.\n\nExplore our Government Schemes tab for full eligibility details and official links.';
-    } else {
-      reply = isTamil
-        ? `வணக்கம்! நான் உங்கள் அக்ரிகனெக்ட் AI விவசாய உதவியாளன் 🌾. உங்களுடைய கேள்வியான "${message}" குறித்து உதவ தயார். நீங்கள் நோய் கண்டறிதல், பயிர் பரிந்துரை அல்லது அரசு திட்டங்கள் பற்றி கேட்கலாம்.`
-        : `Greetings! I am your AgriConnect AI Farming Assistant 🌾. Regarding "${message}", I can help you detect plant diseases, recommend suitable crops for your soil, or guide you through government agriculture subsidies. How can I assist you further?`;
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid text question is required.'
+      });
     }
 
-    res.json({ success: true, reply });
+    // Optional user authentication via Bearer token
+    let userId = null;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded && decoded.id) {
+          userId = decoded.id;
+        }
+      } catch (tokenErr) {
+        // Guest user fallback if token invalid or expired
+      }
+    }
+
+    const result = await processChatMessage({
+      message: message.trim(),
+      lang,
+      history: Array.isArray(history) ? history : [],
+      userId,
+      conversationId,
+      location,
+      cropContext,
+      diseaseContext,
+      imagePrediction
+    });
+
+    return res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'AI chat response error.' });
+    console.error('Chat processing error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process AI chat inquiry. Please try again.'
+    });
+  }
+});
+
+// GET /api/ai/chat/history - Retrieve User's Isolated Chat History
+router.get('/chat/history', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId, limit } = req.query;
+    const history = await getUserChatHistory({
+      userId: req.user.id,
+      conversationId: conversationId || null,
+      limit: limit ? parseInt(limit, 10) : 50
+    });
+
+    return res.json({
+      success: true,
+      count: history.length,
+      history
+    });
+  } catch (error) {
+    console.error('Fetch chat history error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve chat history.'
+    });
+  }
+});
+
+// DELETE /api/ai/chat/history - Clear User's Isolated Chat History
+router.delete('/chat/history', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.query;
+    const cleared = await clearUserChatHistory({
+      userId: req.user.id,
+      conversationId: conversationId || null
+    });
+
+    return res.json({
+      success: cleared,
+      message: cleared ? 'Chat history cleared successfully.' : 'Failed to clear chat history.'
+    });
+  } catch (error) {
+    console.error('Clear chat history error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to clear chat history.'
+    });
   }
 });
 

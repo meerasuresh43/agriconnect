@@ -1,0 +1,692 @@
+[
+  {
+    "group": "Tomato",
+    "expected": "tomato early blight",
+    "predicted": "bean rust",
+    "confidence": 42.35,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "bean rust",
+        42.35
+      ],
+      [
+        "blueberry rust",
+        32.21
+      ],
+      [
+        "eggplant cercospora leaf spot",
+        12.88
+      ]
+    ],
+    "image": "87.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato early blight",
+    "predicted": "banana panama disease",
+    "confidence": 19.91,
+    "is_uncertain": true,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "banana panama disease",
+        19.91
+      ],
+      [
+        "cucumber leaf",
+        15.42
+      ],
+      [
+        "peach leaf",
+        11.07
+      ]
+    ],
+    "image": "google_0270.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato early blight",
+    "predicted": "tomato bacterial leaf spot",
+    "confidence": 41.59,
+    "is_uncertain": false,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "tomato bacterial leaf spot",
+        41.59
+      ],
+      [
+        "apple scab",
+        16.56
+      ],
+      [
+        "tomato late blight",
+        8.76
+      ]
+    ],
+    "image": "google_0045.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato late blight",
+    "predicted": "tomato late blight",
+    "confidence": 52.25,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "tomato late blight",
+        52.25
+      ],
+      [
+        "tomato early blight",
+        25.98
+      ],
+      [
+        "grape black rot",
+        10.05
+      ]
+    ],
+    "image": "47.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato late blight",
+    "predicted": "tomato bacterial leaf spot",
+    "confidence": 37.14,
+    "is_uncertain": true,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "tomato bacterial leaf spot",
+        37.14
+      ],
+      [
+        "tomato septoria leaf spot",
+        36.66
+      ],
+      [
+        "tomato early blight",
+        16.83
+      ]
+    ],
+    "image": "google_0200.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato late blight",
+    "predicted": "potato late blight",
+    "confidence": 94.01,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "potato late blight",
+        94.01
+      ],
+      [
+        "tomato early blight",
+        2.76
+      ],
+      [
+        "potato early blight",
+        1.68
+      ]
+    ],
+    "image": "google_0056.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf",
+    "predicted": "bell pepper leaf",
+    "confidence": 73.64,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "bell pepper leaf",
+        73.64
+      ],
+      [
+        "tomato leaf",
+        26.15
+      ],
+      [
+        "cherry leaf",
+        0.19
+      ]
+    ],
+    "image": "google_0571.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf",
+    "predicted": "tomato leaf mold",
+    "confidence": 62.75,
+    "is_uncertain": false,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "tomato leaf mold",
+        62.75
+      ],
+      [
+        "tomato yellow leaf curl virus",
+        7.44
+      ],
+      [
+        "tomato early blight",
+        4.86
+      ]
+    ],
+    "image": "google_0056.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf",
+    "predicted": "lettuce leaf",
+    "confidence": 78.64,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "lettuce leaf",
+        78.64
+      ],
+      [
+        "celery leaf",
+        4.34
+      ],
+      [
+        "maple leaf",
+        3.58
+      ]
+    ],
+    "image": "google_0477.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf mold",
+    "predicted": "tomato late blight",
+    "confidence": 73.99,
+    "is_uncertain": false,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "tomato late blight",
+        73.99
+      ],
+      [
+        "tomato leaf mold",
+        8.21
+      ],
+      [
+        "tomato early blight",
+        5.86
+      ]
+    ],
+    "image": "13.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf mold",
+    "predicted": "tomato septoria leaf spot",
+    "confidence": 36.84,
+    "is_uncertain": false,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "tomato septoria leaf spot",
+        36.84
+      ],
+      [
+        "tomato bacterial leaf spot",
+        12.53
+      ],
+      [
+        "grapevine leafroll disease",
+        7.62
+      ]
+    ],
+    "image": "69 - Copy (3).jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato leaf mold",
+    "predicted": "tomato leaf mold",
+    "confidence": 66.16,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "tomato leaf mold",
+        66.16
+      ],
+      [
+        "potato late blight",
+        11.68
+      ],
+      [
+        "apple rust",
+        5.6
+      ]
+    ],
+    "image": "google_0056.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato bacterial leaf spot",
+    "predicted": "tomato bacterial leaf spot",
+    "confidence": 56.79,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "tomato bacterial leaf spot",
+        56.79
+      ],
+      [
+        "tomato septoria leaf spot",
+        24.89
+      ],
+      [
+        "tomato early blight",
+        16.78
+      ]
+    ],
+    "image": "google_0276.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato bacterial leaf spot",
+    "predicted": "tomato bacterial leaf spot",
+    "confidence": 49.3,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "tomato bacterial leaf spot",
+        49.3
+      ],
+      [
+        "tomato early blight",
+        17.25
+      ],
+      [
+        "peach leaf",
+        8.01
+      ]
+    ],
+    "image": "183.jpg"
+  },
+  {
+    "group": "Tomato",
+    "expected": "tomato bacterial leaf spot",
+    "predicted": "bean rust",
+    "confidence": 24.45,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "bean rust",
+        24.45
+      ],
+      [
+        "tomato bacterial leaf spot",
+        14.0
+      ],
+      [
+        "tomato early blight",
+        13.07
+      ]
+    ],
+    "image": "google_0310.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato early blight",
+    "predicted": "potato early blight",
+    "confidence": 61.82,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "potato early blight",
+        61.82
+      ],
+      [
+        "potato late blight",
+        22.31
+      ],
+      [
+        "apple black rot",
+        6.99
+      ]
+    ],
+    "image": "google_0230.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato early blight",
+    "predicted": "potato late blight",
+    "confidence": 77.5,
+    "is_uncertain": false,
+    "status": "CROP_MATCH",
+    "top3": [
+      [
+        "potato late blight",
+        77.5
+      ],
+      [
+        "potato early blight",
+        10.28
+      ],
+      [
+        "bean leaf",
+        5.27
+      ]
+    ],
+    "image": "google_0070.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato early blight",
+    "predicted": "cabbage alternaria leaf spot",
+    "confidence": 44.85,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "cabbage alternaria leaf spot",
+        44.85
+      ],
+      [
+        "bean mosaic virus",
+        16.82
+      ],
+      [
+        "lettuce mosaic virus",
+        14.5
+      ]
+    ],
+    "image": "30 - Copy.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato late blight",
+    "predicted": "soybean leaf",
+    "confidence": 13.48,
+    "is_uncertain": true,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "soybean leaf",
+        13.48
+      ],
+      [
+        "peach leaf",
+        13.27
+      ],
+      [
+        "potato late blight",
+        11.37
+      ]
+    ],
+    "image": "47.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato late blight",
+    "predicted": "peach leaf curl",
+    "confidence": 12.58,
+    "is_uncertain": true,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "peach leaf curl",
+        12.58
+      ],
+      [
+        "potato early blight",
+        11.6
+      ],
+      [
+        "apple rust",
+        10.57
+      ]
+    ],
+    "image": "1.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato late blight",
+    "predicted": "soybean leaf",
+    "confidence": 60.81,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "soybean leaf",
+        60.81
+      ],
+      [
+        "bean leaf",
+        10.18
+      ],
+      [
+        "potato leaf",
+        9.27
+      ]
+    ],
+    "image": "87.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato leaf",
+    "predicted": "raspberry leaf",
+    "confidence": 29.82,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "raspberry leaf",
+        29.82
+      ],
+      [
+        "apple leaf",
+        19.82
+      ],
+      [
+        "plum leaf",
+        18.66
+      ]
+    ],
+    "image": "google_0082.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato leaf",
+    "predicted": "apple leaf",
+    "confidence": 67.79,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "apple leaf",
+        67.79
+      ],
+      [
+        "maple leaf",
+        19.04
+      ],
+      [
+        "grape leaf",
+        3.49
+      ]
+    ],
+    "image": "google_0056.jpg"
+  },
+  {
+    "group": "Potato",
+    "expected": "potato leaf",
+    "predicted": "potato leaf",
+    "confidence": 74.73,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "potato leaf",
+        74.73
+      ],
+      [
+        "soybean leaf",
+        6.9
+      ],
+      [
+        "bean leaf",
+        6.51
+      ]
+    ],
+    "image": "google_0003.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant cercospora leaf spot",
+    "predicted": "bean rust",
+    "confidence": 61.1,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "bean rust",
+        61.1
+      ],
+      [
+        "eggplant cercospora leaf spot",
+        9.96
+      ],
+      [
+        "tomato bacterial leaf spot",
+        8.79
+      ]
+    ],
+    "image": "38.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant cercospora leaf spot",
+    "predicted": "bean rust",
+    "confidence": 43.56,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "bean rust",
+        43.56
+      ],
+      [
+        "cherry leaf spot",
+        24.75
+      ],
+      [
+        "eggplant cercospora leaf spot",
+        7.64
+      ]
+    ],
+    "image": "1.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant cercospora leaf spot",
+    "predicted": "tomato bacterial leaf spot",
+    "confidence": 37.84,
+    "is_uncertain": true,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "tomato bacterial leaf spot",
+        37.84
+      ],
+      [
+        "tomato septoria leaf spot",
+        32.14
+      ],
+      [
+        "tomato early blight",
+        16.54
+      ]
+    ],
+    "image": "google_0071.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant leaf",
+    "predicted": "peach leaf",
+    "confidence": 88.1,
+    "is_uncertain": false,
+    "status": "MISMATCH",
+    "top3": [
+      [
+        "peach leaf",
+        88.1
+      ],
+      [
+        "eggplant leaf",
+        2.73
+      ],
+      [
+        "plum leaf",
+        2.05
+      ]
+    ],
+    "image": "google_0230.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant leaf",
+    "predicted": "eggplant leaf",
+    "confidence": 97.36,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "eggplant leaf",
+        97.36
+      ],
+      [
+        "bean leaf",
+        1.33
+      ],
+      [
+        "bell pepper leaf",
+        0.44
+      ]
+    ],
+    "image": "google_0155.jpg"
+  },
+  {
+    "group": "Eggplant / Brinjal",
+    "expected": "eggplant leaf",
+    "predicted": "eggplant leaf",
+    "confidence": 36.41,
+    "is_uncertain": false,
+    "status": "MATCH",
+    "top3": [
+      [
+        "eggplant leaf",
+        36.41
+      ],
+      [
+        "cauliflower leaf",
+        20.35
+      ],
+      [
+        "soybean leaf",
+        11.07
+      ]
+    ],
+    "image": "google_0003.jpg"
+  }
+]

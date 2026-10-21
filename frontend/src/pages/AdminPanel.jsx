@@ -15,7 +15,7 @@ export const AdminPanel = () => {
   const isMainAdmin = (user?.role || '').toLowerCase() === 'main_admin';
 
   // Navigation section
-  const [activeSection, setActiveSection] = useState('overview'); // overview, admins, owners, farmers, verifications, duplicates, fraud, listings, rentals, audit
+  const [activeSection, setActiveSection] = useState('overview'); // overview, admins, owners, farmers, documents, duplicates, fraud, listings, rentals, audit
 
   // Core Data States
   const [stats, setStats] = useState(null);
@@ -23,7 +23,7 @@ export const AdminPanel = () => {
   const [adminsLoading, setAdminsLoading] = useState(false);
   const [adminsError, setAdminsError] = useState('');
   const [usersList, setUsersList] = useState([]);
-  const [pendingVerifications, setPendingVerifications] = useState({ pendingUsers: [], pendingDocs: [] });
+  const [pendingVerifications, setPendingVerifications] = useState({ pendingDocs: [] });
   const [duplicateCases, setDuplicateCases] = useState([]);
   const [fraudReports, setFraudReports] = useState([]);
   const [listings, setListings] = useState([]);
@@ -33,7 +33,6 @@ export const AdminPanel = () => {
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [verificationFilter, setVerificationFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
@@ -102,7 +101,6 @@ export const AdminPanel = () => {
         params: {
           role,
           status: statusFilter,
-          verification: verificationFilter,
           search: searchQuery
         }
       });
@@ -178,7 +176,7 @@ export const AdminPanel = () => {
       fetchUsers('owner');
     } else if (activeSection === 'farmers') {
       fetchUsers('farmer');
-    } else if (activeSection === 'verifications') {
+    } else if (activeSection === 'documents' || activeSection === 'verifications') {
       fetchVerifications();
     } else if (activeSection === 'duplicates') {
       fetchDuplicates();
@@ -196,7 +194,7 @@ export const AdminPanel = () => {
   useEffect(() => {
     setLoading(true);
     refreshCurrentSection().finally(() => setLoading(false));
-  }, [activeSection, statusFilter, verificationFilter]);
+  }, [activeSection, statusFilter]);
 
   // Handle Search Debounce or trigger
   const handleSearchSubmit = (e) => {
@@ -267,18 +265,6 @@ export const AdminPanel = () => {
           data: { reason: modalReason.trim() }
         });
         showNotification('success', `Account #${targetId} removed from active directory.`);
-      } else if (actionType === 'approve_user_verification') {
-        await api.patch(`/admin/verifications/${targetId}`, {
-          status: 'verified',
-          reason: modalReason.trim() || 'Government verification criteria satisfied'
-        });
-        showNotification('success', 'User verification approved.');
-      } else if (actionType === 'reject_user_verification') {
-        await api.patch(`/admin/verifications/${targetId}`, {
-          status: 'rejected',
-          reason: modalReason.trim()
-        });
-        showNotification('success', 'User verification rejected with feedback note.');
       } else if (actionType === 'moderate_listing') {
         await api.patch(`/admin/lands/${targetId}/status`, {
           approval_status: actionModal.extraData?.approval_status,
@@ -497,20 +483,20 @@ export const AdminPanel = () => {
           </button>
 
           <button
-            onClick={() => setActiveSection('verifications')}
+            onClick={() => setActiveSection('documents')}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-              activeSection === 'verifications'
+              activeSection === 'documents' || activeSection === 'verifications'
                 ? 'bg-agri-dark text-white shadow-xs'
                 : 'text-slate-700 hover:bg-agri-light hover:text-agri-deep'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <UserCheck className="w-4 h-4" />
-              <span>5. User Verification</span>
+              <FileText className="w-4 h-4" />
+              <span>5. Land Document Verification</span>
             </div>
-            {stats?.pendingVerifications > 0 && (
+            {pendingVerifications.pendingDocs?.length > 0 && (
               <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500 text-white">
-                {stats.pendingVerifications}
+                {pendingVerifications.pendingDocs.length}
               </span>
             )}
           </button>
@@ -617,9 +603,9 @@ export const AdminPanel = () => {
                 </div>
 
                 <div className="p-5 bg-white rounded-2xl border border-agri-soft shadow-xs">
-                  <div className="text-xs font-semibold text-slate-500">Pending User Verifications</div>
-                  <div className="text-2xl font-black text-amber-600 mt-1">{stats?.pendingVerifications || 0}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">{stats?.verifiedUsers || 0} Verified Users</div>
+                  <div className="text-xs font-semibold text-slate-500">Pending Land Approvals</div>
+                  <div className="text-2xl font-black text-amber-600 mt-1">{stats?.pendingLandVerifications || 0}</div>
+                  <div className="text-[11px] text-slate-500 mt-1">{pendingVerifications.pendingDocs?.length || 0} Documents Pending</div>
                 </div>
 
                 <div className="p-5 bg-white rounded-2xl border border-agri-soft shadow-xs">
@@ -642,18 +628,18 @@ export const AdminPanel = () => {
                 <div className="p-5 bg-agri-light/40 rounded-2xl border border-agri-soft space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-agri-dark" />
-                      <h3 className="text-sm font-extrabold text-agri-deep">Pending User Approvals</h3>
+                      <FileText className="w-4 h-4 text-agri-dark" />
+                      <h3 className="text-sm font-extrabold text-agri-deep">Pending Land Documents</h3>
                     </div>
                     <button
-                      onClick={() => setActiveSection('verifications')}
+                      onClick={() => setActiveSection('documents')}
                       className="text-xs font-bold text-agri-dark hover:underline"
                     >
                       View All
                     </button>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {stats?.pendingVerifications || 0} users have submitted their registration and are pending administrator verification review.
+                    {pendingVerifications.pendingDocs?.length || 0} land ownership documents (Patta / Chitta / Adangal) are pending administrator verification review.
                   </p>
                 </div>
 
@@ -859,7 +845,7 @@ export const AdminPanel = () => {
                     {activeSection === 'owners' ? 'Manage Agricultural Landowners' : 'Manage Registered Farmers'}
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Searchable, paginated directory with profile inspection, account suspension, and verification review.
+                    Searchable, paginated directory with profile inspection, account suspension, and role management.
                   </p>
                 </div>
 
@@ -886,16 +872,6 @@ export const AdminPanel = () => {
                     <option value="suspended">Suspended Only</option>
                   </select>
 
-                  <select
-                    value={verificationFilter}
-                    onChange={(e) => setVerificationFilter(e.target.value)}
-                    className="py-1.5 px-2.5 bg-white border border-agri-soft rounded-xl text-xs font-medium focus:outline-none"
-                  >
-                    <option value="all">All Verifications</option>
-                    <option value="verified">Verified Only</option>
-                    <option value="pending">Pending Only</option>
-                  </select>
-
                   <button
                     type="submit"
                     className="px-3 py-1.5 bg-agri-dark text-white rounded-xl text-xs font-bold hover:bg-agri-deep transition"
@@ -916,7 +892,6 @@ export const AdminPanel = () => {
                         <th className="p-3.5">Email</th>
                         <th className="p-3.5">Phone</th>
                         <th className="p-3.5">{activeSection === 'owners' ? 'Land Listings' : 'Rental Requests'}</th>
-                        <th className="p-3.5">Verification</th>
                         <th className="p-3.5">Status</th>
                         <th className="p-3.5 text-right">Admin Actions</th>
                       </tr>
@@ -924,7 +899,7 @@ export const AdminPanel = () => {
                     <tbody className="divide-y divide-agri-soft/50">
                       {usersList.length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="p-8 text-center text-slate-500">
+                          <td colSpan="7" className="p-8 text-center text-slate-500">
                             No matching user records found in database.
                           </td>
                         </tr>
@@ -937,19 +912,6 @@ export const AdminPanel = () => {
                             <td className="p-3.5 text-slate-600">{u.phone || '—'}</td>
                             <td className="p-3.5 font-mono font-semibold">
                               {activeSection === 'owners' ? u.land_count || 0 : u.request_count || 0}
-                            </td>
-                            <td className="p-3.5">
-                              {u.is_verified === 1 ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>Verified</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-200">
-                                  <Clock className="w-3 h-3 text-amber-600" />
-                                  <span>Pending</span>
-                                </span>
-                              )}
                             </td>
                             <td className="p-3.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1034,118 +996,61 @@ export const AdminPanel = () => {
           )}
 
           {/* ==================================================== */}
-          {/* SECTION 5: USER & DOCUMENT VERIFICATION */}
+          {/* SECTION 5: LAND DOCUMENT VERIFICATION */}
           {/* ==================================================== */}
-          {activeSection === 'verifications' && (
+          {(activeSection === 'documents' || activeSection === 'verifications') && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-white p-5 rounded-3xl border border-agri-soft shadow-xs">
-                <h2 className="text-base font-black text-agri-deep">Verification Review Console</h2>
+                <h2 className="text-base font-black text-agri-deep">Land Document Verification Console</h2>
                 <p className="text-xs text-slate-500">
-                  Inspect unverified identity records and private land ownership documents. Private URLs are protected and accessible only to administrators.
+                  Inspect submitted private land ownership documents (Patta, Chitta, Adangal). Private URLs are protected and accessible only to authorized administrators.
                 </p>
               </div>
 
-              {/* Pending Users Grid */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                  Pending Identity Verifications ({pendingVerifications.pendingUsers?.length || 0})
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pendingVerifications.pendingUsers?.map((u) => (
-                    <div key={u.id} className="p-4 bg-white rounded-2xl border border-agri-soft shadow-xs space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-sm text-agri-deep">{u.name}</h4>
-                          <span className="text-[10px] font-mono text-agri-dark font-bold">{u.farmer_user_id}</span>
-                        </div>
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-agri-light text-agri-dark">
-                          {u.role}
-                        </span>
-                      </div>
-
-                      <div className="text-xs text-slate-600 space-y-1">
-                        <div><strong>Email:</strong> {u.email}</div>
-                        <div><strong>Phone:</strong> {u.phone || 'Not provided'}</div>
-                        <div><strong>Location:</strong> {u.location || 'Tamil Nadu'}</div>
-                        <div><strong>Aadhaar:</strong> XXXX-XXXX-{u.aadhaar_last4 || 'XXXX'}</div>
-                      </div>
-
-                      <div className="flex gap-2 pt-2 border-t border-agri-soft">
-                        <button
-                          onClick={() => openActionModal({
-                            actionType: 'approve_user_verification',
-                            targetId: u.id,
-                            targetName: u.name,
-                            title: `Approve Verification: ${u.name}`,
-                            promptText: `Confirm government verification approval for ${u.name}?`,
-                            requiresReason: false,
-                            confirmBtnText: 'Approve Verified Status',
-                            confirmBtnColor: 'bg-emerald-600'
-                          })}
-                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => openActionModal({
-                            actionType: 'reject_user_verification',
-                            targetId: u.id,
-                            targetName: u.name,
-                            title: `Reject Verification: ${u.name}`,
-                            promptText: `Provide the specific rejection reason to be sent to the user:`,
-                            requiresReason: true,
-                            confirmBtnText: 'Reject Verification',
-                            confirmBtnColor: 'bg-red-600'
-                          })}
-                          className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-bold border border-red-200 transition"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Pending Land Documents */}
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3">
                 <h3 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
                   Submitted Private Land Documents ({pendingVerifications.pendingDocs?.length || 0})
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pendingVerifications.pendingDocs?.map((doc) => (
-                    <div key={doc.id} className="p-4 bg-white rounded-2xl border border-agri-soft shadow-xs space-y-3 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-mono text-[10px] uppercase font-bold bg-agri-light text-agri-dark px-2 py-0.5 rounded border border-agri-soft">
-                          {doc.doc_type} Document
-                        </span>
-                        <span className="text-[10px] text-slate-400">{new Date(doc.uploaded_at).toLocaleDateString()}</span>
-                      </div>
-
-                      <div className="space-y-1 text-slate-700">
-                        <div><strong>Land:</strong> {doc.land_title} ({doc.land_location})</div>
-                        <div><strong>Landowner:</strong> {doc.owner_name} ({doc.owner_user_id})</div>
-                      </div>
-
-                      <div className="pt-2 border-t border-agri-soft flex items-center justify-between">
-                        <a
-                          href={doc.doc_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-agri-dark hover:bg-agri-deep transition shadow-xs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Inspect Document</span>
-                        </a>
-
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          Pending Review
-                        </span>
-                      </div>
+                  {pendingVerifications.pendingDocs?.length === 0 ? (
+                    <div className="col-span-2 p-8 text-center bg-white rounded-2xl border border-dashed border-agri-soft text-slate-500 text-xs">
+                      No land documents currently pending verification review.
                     </div>
-                  ))}
+                  ) : (
+                    pendingVerifications.pendingDocs?.map((doc) => (
+                      <div key={doc.id} className="p-4 bg-white rounded-2xl border border-agri-soft shadow-xs space-y-3 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="font-mono text-[10px] uppercase font-bold bg-agri-light text-agri-dark px-2 py-0.5 rounded border border-agri-soft">
+                            {doc.doc_type} Document
+                          </span>
+                          <span className="text-[10px] text-slate-400">{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                        </div>
+
+                        <div className="space-y-1 text-slate-700">
+                          <div><strong>Land:</strong> {doc.land_title} ({doc.land_location})</div>
+                          <div><strong>Landowner:</strong> {doc.owner_name} ({doc.owner_user_id})</div>
+                        </div>
+
+                        <div className="pt-2 border-t border-agri-soft flex items-center justify-between">
+                          <a
+                            href={doc.doc_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-agri-dark hover:bg-agri-deep transition shadow-xs"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Inspect Document</span>
+                          </a>
+
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Pending Review
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1821,7 +1726,6 @@ export const AdminPanel = () => {
               <div><strong>Phone:</strong> {selectedUser.phone || '—'}</div>
               <div><strong>Location:</strong> {selectedUser.location || '—'}</div>
               <div><strong>Aadhaar (Last 4):</strong> XXXX-XXXX-{selectedUser.aadhaar_last4 || 'XXXX'}</div>
-              <div><strong>Verification:</strong> {selectedUser.is_verified ? 'Verified ✓' : 'Pending'}</div>
               <div><strong>Registered:</strong> {new Date(selectedUser.created_at).toLocaleDateString()}</div>
             </div>
 

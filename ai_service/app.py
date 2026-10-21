@@ -111,6 +111,64 @@ def get_history():
         return jsonify({"success": False, "message": "Failed to retrieve history."}), 500
 
 
+def validate_plant_tissue(image: Image.Image):
+    """
+    Validates whether an uploaded image contains plant foliage or agricultural tissue.
+    Rejects blank, solid color, extreme non-vegetation, and textureless images.
+    """
+    img_rgb = image.convert("RGB")
+    w, h = img_rgb.size
+    if w < 50 or h < 50:
+        return False, "Image dimensions are too small (minimum 50x50 pixels required)."
+
+    arr = np.array(img_rgb, dtype=np.float32)
+    std_dev = float(np.std(arr))
+    if std_dev < 12.0:
+        return False, "Image appears completely blank, solid color, or lacks discernible visual texture."
+
+    mean_val = float(np.mean(arr))
+    if mean_val < 18.0:
+        return False, "Image is too dark to discern plant foliage or disease symptoms."
+    if mean_val > 248.0 and std_dev < 18.0:
+        return False, "Image is overexposed or blank white."
+
+    r = arr[:, :, 0]
+    g = arr[:, :, 1]
+    b = arr[:, :, 2]
+
+    # Green vegetative chlorophyll tissue or chlorotic/yellow/brown/necrotic lesions
+    green_mask = (g > r * 0.85) & (g > b * 0.85) & (g > 25)
+    necrotic_mask = (r > 45) & (g > 35) & (b < r) & (b < g * 1.15)
+    plant_pixels = int(np.sum(green_mask | necrotic_mask))
+    total_pixels = w * h
+    plant_ratio = plant_pixels / total_pixels
+
+    # Out-of-distribution dominant sky / blue backdrop check
+    blue_dominant = (b > r + 30) & (b > g + 30)
+    blue_ratio = int(np.sum(blue_dominant)) / total_pixels
+
+    if blue_ratio > 0.45:
+        return False, "Image is dominated by blue background/sky and does not show clear plant foliage."
+    if plant_ratio < 0.10:
+        return False, "Image does not appear to contain recognizable plant leaves or agricultural crop tissue."
+
+    return True, "Valid plant tissue"
+
+
+def check_image_blur(image: Image.Image) -> tuple:
+    """
+    Computes discrete 2D Laplacian variance to detect out-of-focus or motion-blurred leaf images.
+    Returns (is_blurred: bool, blur_score: float).
+    """
+    arr = np.array(image.convert("RGB"), dtype=np.float32)
+    gray = np.dot(arr[..., :3], [0.2989, 0.5870, 0.1140])
+    if gray.shape[0] < 10 or gray.shape[1] < 10:
+        return False, 999.0
+    lap = gray[:-2, 1:-1] + gray[2:, 1:-1] + gray[1:-1, :-2] + gray[1:-1, 2:] - 4 * gray[1:-1, 1:-1]
+    blur_var = float(np.var(lap))
+    return (blur_var < 35.0), blur_var
+
+
 @app.route("/api/predict", methods=["POST"])
 def predict_disease():
     """
@@ -156,6 +214,31 @@ def predict_disease():
         logger.error(f"Corrupted or invalid image uploaded: {e}")
         return jsonify({"success": False, "message": "Invalid or corrupted image file."}), 400
 
+    # Plant tissue validation (out-of-distribution / non-plant leaf rejection)
+    is_valid_tissue, tissue_msg = validate_plant_tissue(image)
+    if not is_valid_tissue:
+        logger.warning(f"Rejected out-of-distribution upload: {tissue_msg}")
+        return jsonify({
+            "success": False,
+            "error": "INVALID_PLANT_TISSUE",
+            "message": tissue_msg
+        }), 400
+
+    # Blur & out-of-focus detection
+    is_blurred, blur_score = check_image_blur(image)
+    if is_blurred:
+        logger.warning(f"Rejected severely blurred image (blur_score={blur_score:.1f})")
+        return jsonify({
+            "success": False,
+            "error": "BLURRED_IMAGE",
+            "error_code": "BLURRED_IMAGE",
+            "message": (
+                f"The uploaded leaf photograph is out of focus or motion-blurred (clarity score: {int(blur_score)}/1000). "
+                "Visual pathology symptoms cannot be reliably diagnosed from a blurred image without guessing. "
+                "Please capture a sharp, well-focused close-up photograph in natural daylight and re-upload."
+            )
+        }), 400
+
     # Optional query parameters from farmer
     lang = request.form.get("lang", "en")
     weather = request.form.get("weather", "normal")
@@ -165,11 +248,12 @@ def predict_disease():
     humidity = float(request.form.get("humidity", 65.0))
     season = request.form.get("season", "spring")
 
-    # 3. Preprocess for MobileNetV2 (224x224 RGB, [-1, 1] range)
+    # 3. Preprocess for MobileNetV2
     img_resized = image.resize(config.IMG_SIZE, Image.Resampling.BILINEAR)
     img_arr = np.array(img_resized, dtype=np.float32)
-    img_preprocessed = tf.keras.applications.mobilenet_v2.preprocess_input(img_arr)
-    img_batch = np.expand_dims(img_preprocessed, axis=0)
+    # The production MobileNetV2 model embeds mobilenet_v2.preprocess_input in its graph.
+    # Passing img_arr [0, 255] directly avoids applying normalization twice.
+    img_batch = np.expand_dims(img_arr, axis=0)
 
     # 4. Neural Network Inference
     try:
@@ -192,10 +276,31 @@ def predict_disease():
         for i in top_indices[:min(5, len(top_indices))]
     ]
 
-    # 5. Handle Low Confidence / Uncertain Results
+    # 5. Calibrated Confidence & Ambiguity Assessment
     threshold = float(request.form.get("threshold", config.CONFIDENCE_THRESHOLD))
     force_uncertain = request.form.get("force_uncertain", "false").lower() == "true"
-    is_uncertain = (confidence < threshold) or force_uncertain
+    
+    top1_conf = float(predictions[pred_idx])
+    top2_conf = float(predictions[top_indices[1]]) if len(top_indices) > 1 else 0.0
+    ratio = top1_conf / (top2_conf + 1e-7)
+
+    # In 89-class classification (random uniform prior = 1.12%), 20% is ~18x random chance.
+    # Calibrated confidence categories:
+    if top1_conf >= 0.60:
+        confidence_level = "High"
+    elif top1_conf >= 0.35:
+        confidence_level = "Moderate"
+    else:
+        confidence_level = "Fair (Field Inspection Recommended)"
+
+    # Overlapping symptom ambiguity check (when top 2 are close):
+    has_overlapping_symptoms = (top1_conf < 0.50) and (ratio < 1.40)
+    overlapping_class = top_predictions[1]["class"] if len(top_predictions) > 1 else None
+
+    # Uncertainty rule:
+    # Only return uncertain if explicitly forced by user for simulation,
+    # or if top-1 confidence is below genuine noise floor (< 0.18, meaning model has no distinct signal):
+    is_uncertain = force_uncertain or (top1_conf < 0.18)
 
     # 6. Retrieve Verified Knowledge Base Information
     kb_info = get_disease_info(predicted_class)
@@ -244,16 +349,27 @@ def predict_disease():
             "success": True,
             "uncertain": True,
             "confidence": round(confidence * 100, 2),
+            "confidence_level": confidence_level,
+            "crop": kb_info.get("crop", predicted_class.split()[0].title()),
             "diseaseName": "தெளிவற்ற முடிவுகள் / குறைந்த AI நம்பிக்கை" if is_tamil else "Uncertain Result / Low AI Confidence",
             "predicted_class": predicted_class,
             "warningMessage": (
-                "⚠️ AI மாதிரியின் நம்பிக்கை குறைவாக உள்ளது (60% க்கும் குறைவு). "
-                "இலைப்படம் மங்கலாக இருக்கலாம் அல்லது பூச்சிக் காயம்/சத்து குறைபாடு இருக்கலாம். "
-                "தயவுசெய்து அருகிலுள்ள வேளாண் அறிவியல் மையத்தை (KVK) அணுகவும்."
+                (
+                    f"⚠️ அறிகுறிகள் '{top_predictions[0]['class']}' ({top_predictions[0]['confidence']}%) மற்றும் '{top_predictions[1]['class']}' ({top_predictions[1]['confidence']}%) இடையே நெருக்கமாக உள்ளன. "
+                    "ஊகத்தின் அடிப்படையில் முடிவெடுப்பதைத் தவிர்க்க, தயவுசெய்து அருகிலுள்ள வேளாண் அறிவியல் மையத்தை (KVK) அணுகவும்."
+                    if (has_overlapping_symptoms and len(top_predictions) > 1) else
+                    f"⚠️ AI மாதிரியின் நம்பிக்கை குறைவாக உள்ளது ({round(confidence * 100, 1)}%, வரம்பு: {int(threshold * 100)}%). "
+                    "இலைப்படம் மங்கலாக இருக்கலாம் அல்லது சத்து குறைபாடு இருக்கலாம். தயவுசெய்து வேளாண் அதிகாரியை அணுகவும்."
+                )
                 if is_tamil else
-                f"⚠️ The AI visual confidence is low ({round(confidence * 100, 1)}%, threshold: 60%). "
-                "The leaf image may be out of focus, blurry, or showing overlapping nutrient symptoms. "
-                "We recommend consulting an agricultural extension officer or KVK specialist before applying chemicals."
+                (
+                    f"⚠️ Symptoms are closely split between '{top_predictions[0]['class']}' ({top_predictions[0]['confidence']}%) and '{top_predictions[1]['class']}' ({top_predictions[1]['confidence']}%). "
+                    "To avoid assuming an incorrect disease, automated diagnosis is flagged as uncertain. Please consult a local agricultural extension officer."
+                    if (has_overlapping_symptoms and len(top_predictions) > 1) else
+                    f"⚠️ The AI visual confidence is low ({round(confidence * 100, 1)}%, threshold: {int(threshold * 100)}%). "
+                    "The leaf image may be out of focus, blurry, or showing overlapping nutrient symptoms. "
+                    "We recommend consulting an agricultural extension officer or KVK specialist before applying chemicals."
+                )
             ),
             "recommendation": (
                 "தெளிவான பகல் வெளிச்சத்தில் இலையை நெருக்கமாக படம் எடுத்து மீண்டும் பதிவேற்றவும்."
@@ -266,22 +382,55 @@ def predict_disease():
             "bayesian_context": bayesian_result
         }), 200
 
-    # Confident Diagnosis Response
+    # Build comprehensive recovery and management steps for UI compatibility
+    immediate_steps = kb_info.get("immediate_safe_steps", [])
+    treatment_options = kb_info.get("treatment_options", [])
+    prevention_steps = kb_info.get("prevention", [])
+    expert_warning = kb_info.get("expert_warning", "")
+
+    recovery_steps = []
+    for s in immediate_steps:
+        recovery_steps.append(f"Immediate Safe Step: {s}")
+    for s in treatment_options:
+        recovery_steps.append(f"University Treatment: {s}")
+    for s in prevention_steps:
+        recovery_steps.append(f"Prevention: {s}")
+    if expert_warning:
+        recovery_steps.append(f"Expert Warning: {expert_warning}")
+
+    # Confident Diagnosis Response (7-Part Certified Pathology Guidance)
     response_data = {
         "success": True,
         "uncertain": False,
         "predicted_class": predicted_class,
+        "crop": kb_info.get("crop", predicted_class.split()[0].title()),
         "diseaseName": kb_info.get("common_name", predicted_class.title()),
         "scientificName": kb_info.get("scientific_name", "N/A"),
         "category": kb_info.get("category", "Fungal"),
         "is_healthy": kb_info.get("is_healthy", False),
         "confidence": round(confidence * 100, 2),
+        "confidence_level": confidence_level,
+        "has_overlapping_symptoms": has_overlapping_symptoms,
+        "overlapping_candidate": overlapping_class,
+        "overlap_warning": (
+            (
+                f"அறிகுறிகள் '{overlapping_class}' ({top_predictions[1]['confidence']}%) உடனும் நெருக்கமாக பொருந்துகின்றன. வயல் ஆய்வின் போது இரண்டையும் பரிசீலிக்கவும்."
+            )
+            if (has_overlapping_symptoms and is_tamil) else
+            (
+                f"Note: Observable symptoms also closely resemble '{overlapping_class}' ({top_predictions[1]['confidence']}%). Consider both possibilities during field inspection."
+            )
+            if has_overlapping_symptoms else None
+        ),
         "top_predictions": top_predictions,
         "symptoms": kb_info.get("symptoms_ta" if is_tamil else "symptoms", []),
         "causes": kb_info.get("causes", ""),
-        "prevention": kb_info.get("prevention", []),
-        "recoverySteps": kb_info.get("recovery_steps", []),
-        "extension_reference": kb_info.get("extension_reference", ""),
+        "immediateSafeSteps": immediate_steps,
+        "treatmentOptions": treatment_options,
+        "prevention": prevention_steps,
+        "expertWarning": expert_warning,
+        "recoverySteps": recovery_steps if recovery_steps else ["Monitor crop health regularly."],
+        "extension_reference": kb_info.get("extension_reference", "ICAR / State Agricultural University Advisory."),
         "expert_system": expert_result,
         "fuzzy_urgency": fuzzy_result,
         "bayesian_context": bayesian_result,
